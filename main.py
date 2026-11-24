@@ -5,6 +5,7 @@ Writes a single one-line office joke (131 characters) to /output/entry.txt.
 Standard library only; deterministic; no trailing newline.
 """
 
+import hashlib
 import os
 
 JOKE = (
@@ -31,6 +32,14 @@ def main() -> None:
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     with open(OUTPUT_PATH, "w", encoding="utf-8", newline="") as f:
         f.write(text)
+    # Read-back verification: the bytes on disk must hash to exactly the
+    # intended joke's digest; fail loudly (non-zero exit) on any drift.
+    with open(OUTPUT_PATH, "rb") as f:
+        written = f.read()
+    if hashlib.sha256(written).digest() != hashlib.sha256(
+        text.encode("utf-8")
+    ).digest():
+        raise SystemExit("read-back mismatch: written bytes differ")
 
 
 if __name__ == "__main__":
